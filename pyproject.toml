@@ -1,0 +1,8 @@
+[project]
+name = "ci-signal-noise"
+version = "0.1.0"
+description = "Score CI signal vs noise ratio from GitHub Actions logs"
+requires-python = ">=3.10"
+
+[project.scripts]
+ci-signal-noise = "ci_signal_noise.__main__:main"
