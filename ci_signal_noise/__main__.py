@@ -11,11 +11,11 @@ from .scorer import score_lines
 def main():
     parser = argparse.ArgumentParser(
         prog="ci-signal-noise",
-        description="Score CI signal vs noise ratio from GitHub Actions logs",
+        description="Measure how much actionable signal vs boilerplate noise appears in your GitHub Actions logs.",
     )
-    parser.add_argument("repo", help="GitHub repo (owner/name)")
-    parser.add_argument("--run-id", type=int, help="Specific run ID to analyze")
-    parser.add_argument("--runs", type=int, default=3, help="Number of recent runs to analyze (default: 3)")
+    parser.add_argument("repo", help="GitHub repo in owner/name format (e.g. acme/web-app)")
+    parser.add_argument("--run-id", type=int, help="Analyze a specific workflow run by its numeric ID")
+    parser.add_argument("--runs", type=int, default=3, help="Number of latest completed runs to analyze (default: 3)")
 
     args = parser.parse_args()
 
@@ -25,7 +25,11 @@ def main():
     else:
         runs = list_runs(args.repo, limit=args.runs)
         if not runs:
-            print("No runs found.", file=sys.stderr)
+            print(
+                f"No workflow runs found for '{args.repo}'. "
+                "Check that the repo name is correct and that it has at least one completed workflow run.",
+                file=sys.stderr,
+            )
             sys.exit(1)
         run_ids = [r["databaseId"] for r in runs]
         runs_by_id = {r["databaseId"]: r for r in runs}
@@ -37,11 +41,14 @@ def main():
         try:
             logs = download_run_logs(args.repo, run_id)
         except RuntimeError as e:
-            print(f"Skipping run {run_id}: {e}", file=sys.stderr)
+            print(f"Could not fetch logs for run {run_id} ({e}); continuing with remaining runs.", file=sys.stderr)
             continue
 
         if not logs:
-            print(f"No logs for run {run_id}", file=sys.stderr)
+            print(
+                f"No logs available for run {run_id} — the run may still be in progress or its logs may have expired.",
+                file=sys.stderr,
+            )
             continue
 
         job_scores = {}
