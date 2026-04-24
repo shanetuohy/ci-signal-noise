@@ -13,7 +13,13 @@ def _run_gh(*args: str, timeout: int = 120) -> str:
         timeout=timeout,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"gh {' '.join(args)} failed: {result.stderr.strip()}")
+        stderr = result.stderr.strip()
+        hint = ""
+        if "auth login" in stderr or "authentication" in stderr.lower():
+            hint = " Hint: run 'gh auth login' to authenticate."
+        elif "Could not resolve" in stderr or "repository not found" in stderr.lower():
+            hint = " Hint: check that the repo name is correct and that you have access."
+        raise RuntimeError(f"gh {' '.join(args)} failed: {stderr}{hint}")
     return result.stdout
 
 

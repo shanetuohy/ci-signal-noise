@@ -46,7 +46,7 @@ def format_report(run_info: dict, job_scores: dict[str, dict], overall: dict) ->
 def format_multi_run_summary(run_reports: list[tuple[dict, dict]]) -> str:
     """Summary across multiple runs. Each item is (run_info, overall_score)."""
     if not run_reports:
-        return "No runs to report."
+        return "No completed runs to summarise — try again after a workflow finishes."
 
     lines = ["", "=== Summary across runs ===", ""]
     lines.append(f"  {'Run ID':<12} {'Signal%':>8}  {'Conclusion':<12}  Title")
