@@ -6,14 +6,29 @@ import subprocess
 
 
 def _run_gh(*args: str, timeout: int = 120) -> str:
-    result = subprocess.run(
-        ["gh", *args],
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-    )
+    try:
+        result = subprocess.run(
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(
+            f"gh {' '.join(args)} timed out after {timeout}s. "
+            "The operation may be fetching a large amount of data, or GitHub may be slow. "
+            "Try again or increase the timeout."
+        )
     if result.returncode != 0:
-        raise RuntimeError(f"gh {' '.join(args)} failed: {result.stderr.strip()}")
+        stderr = result.stderr.strip()
+        hint = ""
+        if "auth" in stderr.lower() or "401" in stderr or "403" in stderr:
+            hint = " Check your auth with: gh auth status"
+        elif "not found" in stderr.lower() or "404" in stderr:
+            hint = " Verify the repo name is correct (owner/repo format)."
+        elif "timeout" in stderr.lower() or "connection" in stderr.lower():
+            hint = " Check your network connection and try again."
+        raise RuntimeError(f"gh {' '.join(args)} failed: {stderr}{hint}")
     return result.stdout
 
 

@@ -28,7 +28,11 @@ def main():
     else:
         runs = list_runs(args.repo, limit=args.runs)
         if not runs:
-            print("No runs found.", file=sys.stderr)
+            print(
+                f"No runs found for '{args.repo}'. "
+                "Verify the repo exists and you have access (gh auth status).",
+                file=sys.stderr,
+            )
             sys.exit(1)
         run_ids = [r["databaseId"] for r in runs]
         runs_by_id = {r["databaseId"]: r for r in runs}
@@ -45,7 +49,11 @@ def main():
             continue
 
         if not logs:
-            print(f"No logs for run {run_id}", file=sys.stderr)
+            print(
+                f"No logs for run {run_id} in '{args.repo}'. "
+                "The run may still be queued or in progress.",
+                file=sys.stderr,
+            )
             continue
 
         all_lines = []
@@ -67,7 +75,12 @@ def main():
 
     if args.flaky:
         if len(runs_test_results) < 2:
-            print("\nFlaky detection requires at least 2 runs.", file=sys.stderr)
+            print(
+                f"\nFlaky detection requires at least 2 runs with logs, "
+                f"but only {len(runs_test_results)} had downloadable logs. "
+                "Try increasing --runs or check that recent runs have completed.",
+                file=sys.stderr,
+            )
         else:
             flaky_reports = detect_flaky_tests(runs_test_results)
             print()
