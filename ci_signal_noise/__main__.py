@@ -50,8 +50,8 @@ def main():
 
         if not logs:
             print(
-                f"No logs for run {run_id} in '{args.repo}'. "
-                "The run may still be queued or in progress.",
+                f"No logs available for run {run_id}. "
+                "The workflow may still be running — try again once it completes.",
                 file=sys.stderr,
             )
             continue
@@ -76,9 +76,9 @@ def main():
     if args.flaky:
         if len(runs_test_results) < 2:
             print(
-                f"\nFlaky detection requires at least 2 runs with logs, "
-                f"but only {len(runs_test_results)} had downloadable logs. "
-                "Try increasing --runs or check that recent runs have completed.",
+                f"\nFlaky detection needs at least 2 completed runs, "
+                f"but only {len(runs_test_results)} had logs. "
+                "Increase --runs or wait for more runs to finish.",
                 file=sys.stderr,
             )
         else:

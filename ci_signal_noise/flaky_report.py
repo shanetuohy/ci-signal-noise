@@ -45,6 +45,6 @@ def format_flaky_report(reports: list[FlakeReport], total_runs: int) -> str:
         for r in high_flake[:5]:
             lines.append(f"    - Investigate: {r.test_name} (flake rate {r.flake_rate * 100:.0f}%)")
     else:
-        lines.append("  All flaky tests have low flake rates — monitor but no urgent action needed.")
+        lines.append("  All flaky tests have low flake rates — no action needed right now.")
 
     return "\n".join(lines)

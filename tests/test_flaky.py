@@ -204,4 +204,4 @@ class TestFormatReport:
                         flake_rate=0.2, first_seen=0, last_seen=4),
         ]
         output = format_flaky_report(reports, total_runs=5)
-        assert "no urgent action" in output
+        assert "no action needed right now" in output

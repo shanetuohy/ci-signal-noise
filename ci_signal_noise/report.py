@@ -36,8 +36,8 @@ def format_report(run_info: dict, job_scores: dict[str, dict], overall: dict) ->
     lines.append("")
     lines.append(
         f"  Overall: {overall['signal_pct']:.1f}% signal"
-        f"  ({overall['signal']} signal / {overall['noise']} noise / {overall['neutral']} neutral"
-        f" / {overall['total']} total)"
+        f"  ({overall['signal']} signal, {overall['noise']} noise, {overall['neutral']} neutral"
+        f" of {overall['total']} lines)"
     )
 
     return "\n".join(lines)
