@@ -1,7 +1,9 @@
 """Format scoring results as a compact terminal report."""
 
+from .scorer import grade_score, top_noise_sources
 
-def format_report(run_info: dict, job_scores: dict[str, dict], overall: dict) -> str:
+
+def format_report(run_info: dict, job_scores: dict[str, dict], overall: dict, log_lines: list[str] | None = None) -> str:
     """Produce a compact terminal report for a single run."""
     lines = []
 
@@ -34,11 +36,22 @@ def format_report(run_info: dict, job_scores: dict[str, dict], overall: dict) ->
         )
 
     lines.append("")
+
+    grade, label = grade_score(overall["signal_pct"])
     lines.append(
-        f"  Overall: {overall['signal_pct']:.1f}% signal"
+        f"  Overall: {overall['signal_pct']:.1f}% signal  [Grade: {grade}]"
         f"  ({overall['signal']} signal / {overall['noise']} noise / {overall['neutral']} neutral"
         f" / {overall['total']} total)"
     )
+    lines.append(f"  {label}")
+
+    if log_lines:
+        noise_sources = top_noise_sources(log_lines)
+        if noise_sources:
+            lines.append("")
+            lines.append("  Top noise sources (suppress to improve signal):")
+            for category, count in noise_sources:
+                lines.append(f"    - {category}: {count} lines")
 
     return "\n".join(lines)
 
@@ -49,14 +62,15 @@ def format_multi_run_summary(run_reports: list[tuple[dict, dict]]) -> str:
         return "No runs to report."
 
     lines = ["", "=== Summary across runs ===", ""]
-    lines.append(f"  {'Run ID':<12} {'Signal%':>8}  {'Conclusion':<12}  Title")
-    lines.append(f"  {'-' * 12} {'-' * 8}  {'-' * 12}  -----")
+    lines.append(f"  {'Run ID':<12} {'Signal%':>8}  {'Grade':<7} {'Conclusion':<12}  Title")
+    lines.append(f"  {'-' * 12} {'-' * 8}  {'-' * 7} {'-' * 12}  -----")
 
     for run_info, overall in run_reports:
         run_id = str(run_info.get("databaseId", "?"))
         pct = f"{overall['signal_pct']:.1f}%"
+        grade, _ = grade_score(overall["signal_pct"])
         conclusion = run_info.get("conclusion", "?") or "?"
         title = run_info.get("displayTitle", "")[:60]
-        lines.append(f"  {run_id:<12} {pct:>8}  {conclusion:<12}  {title}")
+        lines.append(f"  {run_id:<12} {pct:>8}  {grade:<7} {conclusion:<12}  {title}")
 
     return "\n".join(lines)

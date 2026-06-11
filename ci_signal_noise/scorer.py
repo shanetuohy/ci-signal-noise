@@ -1,6 +1,7 @@
 """Classify CI log lines as signal or noise and compute scores."""
 
 import re
+from collections import Counter
 
 # Signal patterns: lines containing actionable information
 SIGNAL_PATTERNS = [
@@ -68,6 +69,18 @@ NOISE_PATTERNS = [
     re.compile(r"(?i)^\s*up\s+to\s+date"),
 ]
 
+# Map each noise pattern index to a human-readable category for top_noise_sources().
+_NOISE_CATEGORIES = {
+    0: "blank lines",
+    1: "separator lines",
+    2: "download progress", 3: "download progress", 4: "progress bars", 5: "download progress",
+    6: "dependency resolution", 7: "dependency resolution", 8: "dependency resolution",
+    9: "dependency resolution", 10: "dependency resolution",
+    11: "setup boilerplate", 12: "setup boilerplate", 13: "setup boilerplate", 14: "setup boilerplate",
+    15: "timing lines", 16: "timing lines", 17: "timing lines",
+    18: "package manager output", 19: "package manager output", 20: "package manager output",
+}
+
 
 def classify_line(line: str) -> str:
     """Classify a single log line as 'signal', 'noise', or 'neutral'.
@@ -107,3 +120,46 @@ def score_lines(lines: list[str]) -> dict:
         signal_pct = round(counts["signal"] / classified * 100, 1)
 
     return {**counts, "total": total, "signal_pct": signal_pct}
+
+
+def grade_score(signal_pct: float) -> tuple[str, str]:
+    """Map a signal percentage to a letter grade and short label.
+
+    Returns (grade, label) e.g. ("A", "Excellent").
+    """
+    if signal_pct >= 80:
+        return ("A", "Excellent — logs are highly actionable")
+    if signal_pct >= 60:
+        return ("B", "Good — most output is useful")
+    if signal_pct >= 40:
+        return ("C", "Fair — significant noise present")
+    if signal_pct >= 20:
+        return ("D", "Poor — noise dominates signal")
+    return ("F", "Failing — logs are nearly all noise")
+
+
+def _classify_noise_category(line: str) -> str | None:
+    """Return the noise category for a line, or None if it's not noise."""
+    stripped = line.rstrip("\n")
+    # Signal takes priority
+    for pat in SIGNAL_PATTERNS:
+        if pat.search(stripped):
+            return None
+    for idx, pat in enumerate(NOISE_PATTERNS):
+        if pat.search(stripped):
+            return _NOISE_CATEGORIES.get(idx, "other noise")
+    return None
+
+
+def top_noise_sources(lines: list[str], limit: int = 5) -> list[tuple[str, int]]:
+    """Identify the most common noise pattern categories in the log.
+
+    Returns a list of (category_name, count) sorted by count descending,
+    up to *limit* entries.
+    """
+    cats = Counter()
+    for line in lines:
+        cat = _classify_noise_category(line)
+        if cat is not None:
+            cats[cat] += 1
+    return cats.most_common(limit)
