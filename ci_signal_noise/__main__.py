@@ -7,6 +7,7 @@ from .flaky import detect_flaky_tests, extract_test_results
 from .flaky_report import format_flaky_report
 from .gh_client import download_run_logs, list_runs
 from .report import format_multi_run_summary, format_report
+from .runner import analyze_local
 from .scorer import score_lines
 
 
@@ -15,12 +16,23 @@ def main():
         prog="ci-signal-noise",
         description="Score CI signal vs noise ratio from GitHub Actions logs",
     )
-    parser.add_argument("repo", help="GitHub repo (owner/name)")
+    parser.add_argument("repo", nargs="?", help="GitHub repo (owner/name)")
     parser.add_argument("--run-id", type=int, help="Specific run ID to analyze")
     parser.add_argument("--runs", type=int, default=3, help="Number of recent runs to analyze (default: 3)")
     parser.add_argument("--flaky", action="store_true", help="Detect flaky tests across multiple runs")
+    parser.add_argument("--local", metavar="PATH", help="Run local flaky test analysis on a directory")
+    parser.add_argument("--iterations", type=int, default=5, help="Number of test iterations for --local (default: 5)")
+    parser.add_argument("--cmd", default="python3 -m pytest -v", help="Test command for --local (default: 'python3 -m pytest -v')")
 
     args = parser.parse_args()
+
+    if args.local:
+        reports = analyze_local(args.cmd, args.local, args.iterations)
+        print(format_flaky_report(reports, total_runs=args.iterations))
+        return
+
+    if not args.repo:
+        parser.error("repo is required unless --local is specified")
 
     if args.run_id:
         run_ids = [args.run_id]
