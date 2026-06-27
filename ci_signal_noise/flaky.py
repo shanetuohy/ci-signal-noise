@@ -1,7 +1,7 @@
 """Parse test results from CI log lines and detect flaky tests."""
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -120,7 +120,6 @@ def detect_flaky_tests(runs_results: list[list[TestResult]]) -> list[FlakeReport
             test_runs.setdefault(tr.name, {})[run_idx] = tr.passed
 
     reports: list[FlakeReport] = []
-    total_runs = len(runs_results)
 
     for test_name, run_map in test_runs.items():
         pass_count = sum(1 for v in run_map.values() if v)
