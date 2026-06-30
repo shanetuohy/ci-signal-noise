@@ -65,7 +65,23 @@ def main():
         if args.flaky:
             runs_test_results.append(extract_test_results(all_lines))
 
-        overall = score_lines(all_lines)
+        # Compute overall by summing per-job scores instead of re-scoring all lines
+        total_signal = sum(s["signal"] for s in job_scores.values())
+        total_noise = sum(s["noise"] for s in job_scores.values())
+        total_neutral = sum(s["neutral"] for s in job_scores.values())
+        total_lines = total_signal + total_noise + total_neutral
+        classified = total_signal + total_noise
+        if classified == 0:
+            signal_pct = 50.0
+        else:
+            signal_pct = round(total_signal / classified * 100, 1)
+        overall = {
+            "signal": total_signal,
+            "noise": total_noise,
+            "neutral": total_neutral,
+            "total": total_lines,
+            "signal_pct": signal_pct,
+        }
         print(format_report(run_info, job_scores, overall))
         print()
         summaries.append((run_info, overall))
