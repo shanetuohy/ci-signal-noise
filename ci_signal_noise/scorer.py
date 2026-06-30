@@ -107,3 +107,27 @@ def score_lines(lines: list[str]) -> dict:
         signal_pct = round(counts["signal"] / classified * 100, 1)
 
     return {**counts, "total": total, "signal_pct": signal_pct}
+
+
+def merge_scores(scores: list[dict]) -> dict:
+    """Merge multiple score dicts by summing counts and deriving signal_pct."""
+    total = sum(s["total"] for s in scores)
+    if total == 0:
+        return {"signal": 0, "noise": 0, "neutral": 0, "total": 0, "signal_pct": 0.0}
+
+    signal = sum(s["signal"] for s in scores)
+    noise = sum(s["noise"] for s in scores)
+    neutral = sum(s["neutral"] for s in scores)
+    classified = signal + noise
+    if classified == 0:
+        signal_pct = 50.0
+    else:
+        signal_pct = round(signal / classified * 100, 1)
+
+    return {
+        "signal": signal,
+        "noise": noise,
+        "neutral": neutral,
+        "total": total,
+        "signal_pct": signal_pct,
+    }

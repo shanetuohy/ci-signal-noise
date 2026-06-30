@@ -2,7 +2,7 @@
 
 import unittest
 
-from ci_signal_noise.scorer import classify_line, score_lines
+from ci_signal_noise.scorer import classify_line, merge_scores, score_lines
 
 
 class TestClassifyLine(unittest.TestCase):
@@ -167,6 +167,53 @@ class TestRealLogFragments(unittest.TestCase):
         result = score_lines(lines)
         # All should be signal (assertion error, failed, summary with failed)
         self.assertEqual(result["signal"], 3)
+
+
+class TestMergeScores(unittest.TestCase):
+    """Test that merge_scores produces identical results to score_lines on combined input."""
+
+    def test_merge_matches_score_lines_mixed(self):
+        """Merging per-job scores must match scoring all lines together."""
+        job1_lines = [
+            "Collecting requests",        # noise
+            "",                            # noise
+            "Error: module not found",     # signal
+        ]
+        job2_lines = [
+            "FAIL test_auth",              # signal
+            "Running test suite...",        # neutral
+            "added 150 packages in 12s",   # noise
+        ]
+        all_lines = job1_lines + job2_lines
+
+        expected = score_lines(all_lines)
+        merged = merge_scores([score_lines(job1_lines), score_lines(job2_lines)])
+
+        self.assertEqual(merged, expected)
+
+    def test_merge_empty_scores(self):
+        result = merge_scores([])
+        self.assertEqual(result["total"], 0)
+        self.assertEqual(result["signal_pct"], 0.0)
+
+    def test_merge_single_score(self):
+        lines = ["Error: bad thing", "FAIL test_foo"]
+        single = score_lines(lines)
+        merged = merge_scores([single])
+        self.assertEqual(merged, single)
+
+    def test_merge_all_neutral(self):
+        """All neutral lines should give signal_pct 50.0."""
+        job1 = score_lines(["hello world"])
+        job2 = score_lines(["running suite"])
+        merged = merge_scores([job1, job2])
+        self.assertEqual(merged["signal_pct"], 50.0)
+
+    def test_merge_empty_jobs(self):
+        """Empty job scores should give signal_pct 0.0."""
+        merged = merge_scores([score_lines([]), score_lines([])])
+        self.assertEqual(merged["total"], 0)
+        self.assertEqual(merged["signal_pct"], 0.0)
 
 
 if __name__ == "__main__":

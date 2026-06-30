@@ -7,7 +7,7 @@ from .flaky import detect_flaky_tests, extract_test_results
 from .flaky_report import format_flaky_report
 from .gh_client import download_run_logs, list_runs
 from .report import format_multi_run_summary, format_report
-from .scorer import score_lines
+from .scorer import merge_scores, score_lines
 
 
 def main():
@@ -56,36 +56,17 @@ def main():
             )
             continue
 
-        all_lines = []
         job_scores = {}
         for job_name, lines in logs.items():
             job_scores[job_name] = score_lines(lines)
-            all_lines.extend(lines)
 
         if args.flaky:
+            all_lines = [line for lines in logs.values() for line in lines]
             runs_test_results.append(extract_test_results(all_lines))
 
         # Compute overall scores by summing per-job scores instead of
         # re-classifying all lines a second time via score_lines().
-        total_lines = sum(s["total"] for s in job_scores.values())
-        if total_lines == 0:
-            overall = {"signal": 0, "noise": 0, "neutral": 0, "total": 0, "signal_pct": 0.0}
-        else:
-            total_signal = sum(s["signal"] for s in job_scores.values())
-            total_noise = sum(s["noise"] for s in job_scores.values())
-            total_neutral = sum(s["neutral"] for s in job_scores.values())
-            classified = total_signal + total_noise
-            if classified == 0:
-                signal_pct = 50.0
-            else:
-                signal_pct = round(total_signal / classified * 100, 1)
-            overall = {
-                "signal": total_signal,
-                "noise": total_noise,
-                "neutral": total_neutral,
-                "total": total_lines,
-                "signal_pct": signal_pct,
-            }
+        overall = merge_scores(list(job_scores.values()))
         print(format_report(run_info, job_scores, overall))
         print()
         summaries.append((run_info, overall))
