@@ -107,3 +107,30 @@ def score_lines(lines: list[str]) -> dict:
         signal_pct = round(counts["signal"] / classified * 100, 1)
 
     return {**counts, "total": total, "signal_pct": signal_pct}
+
+
+def trend_score(signal_pcts: list[float]) -> dict:
+    """Compute trend from a list of per-run signal percentages (oldest first).
+
+    Returns dict with 'direction' ('improving', 'degrading', 'stable'),
+    'arrow' (↑/↓/→), 'delta' (change from first to last), and
+    'per_run_deltas' (list of deltas between consecutive runs).
+    """
+    if len(signal_pcts) < 2:
+        return {"direction": "stable", "arrow": "\u2192", "delta": 0.0, "per_run_deltas": []}
+
+    per_run_deltas = [
+        round(signal_pcts[i] - signal_pcts[i - 1], 1)
+        for i in range(1, len(signal_pcts))
+    ]
+
+    delta = round(signal_pcts[-1] - signal_pcts[0], 1)
+
+    if abs(delta) < 1.0:
+        direction, arrow = "stable", "\u2192"
+    elif delta > 0:
+        direction, arrow = "improving", "\u2191"
+    else:
+        direction, arrow = "degrading", "\u2193"
+
+    return {"direction": direction, "arrow": arrow, "delta": delta, "per_run_deltas": per_run_deltas}

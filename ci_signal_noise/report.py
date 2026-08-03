@@ -43,20 +43,43 @@ def format_report(run_info: dict, job_scores: dict[str, dict], overall: dict) ->
     return "\n".join(lines)
 
 
-def format_multi_run_summary(run_reports: list[tuple[dict, dict]]) -> str:
+def format_multi_run_summary(run_reports: list[tuple[dict, dict]], trend: dict | None = None) -> str:
     """Summary across multiple runs. Each item is (run_info, overall_score)."""
     if not run_reports:
         return "No runs to report."
 
     lines = ["", "=== Summary across runs ===", ""]
-    lines.append(f"  {'Run ID':<12} {'Signal%':>8}  {'Conclusion':<12}  Title")
-    lines.append(f"  {'-' * 12} {'-' * 8}  {'-' * 12}  -----")
 
-    for run_info, overall in run_reports:
+    has_deltas = trend and len(trend.get("per_run_deltas", [])) > 0
+    delta_header = "  Delta" if has_deltas else ""
+    lines.append(f"  {'Run ID':<12} {'Signal%':>8}{delta_header}  {'Conclusion':<12}  Title")
+    lines.append(f"  {'-' * 12} {'-' * 8}{'  ------' if has_deltas else ''}  {'-' * 12}  -----")
+
+    per_run_deltas = trend["per_run_deltas"] if has_deltas else []
+    for i, (run_info, overall) in enumerate(run_reports):
         run_id = str(run_info.get("databaseId", "?"))
         pct = f"{overall['signal_pct']:.1f}%"
         conclusion = run_info.get("conclusion", "?") or "?"
         title = run_info.get("displayTitle", "")[:60]
-        lines.append(f"  {run_id:<12} {pct:>8}  {conclusion:<12}  {title}")
+        if has_deltas and i > 0:
+            d = per_run_deltas[i - 1]
+            delta_str = f"  {d:+.1f}%"
+        elif has_deltas:
+            delta_str = "       "
+        else:
+            delta_str = ""
+        lines.append(f"  {run_id:<12} {pct:>8}{delta_str}  {conclusion:<12}  {title}")
+
+    if trend:
+        lines.append("")
+        lines.append(format_trend_summary(trend))
 
     return "\n".join(lines)
+
+
+def format_trend_summary(trend: dict) -> str:
+    """Format a single trend line showing direction arrow and delta magnitude."""
+    arrow = trend["arrow"]
+    delta = trend["delta"]
+    direction = trend["direction"]
+    return f"  Trend: {arrow} {direction} ({delta:+.1f}% signal)"

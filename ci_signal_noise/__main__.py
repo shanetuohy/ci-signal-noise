@@ -7,7 +7,7 @@ from .flaky import detect_flaky_tests, extract_test_results
 from .flaky_report import format_flaky_report
 from .gh_client import download_run_logs, list_runs
 from .report import format_multi_run_summary, format_report
-from .scorer import score_lines
+from .scorer import score_lines, trend_score
 
 
 def main():
@@ -71,7 +71,9 @@ def main():
         summaries.append((run_info, overall))
 
     if len(summaries) > 1:
-        print(format_multi_run_summary(summaries))
+        signal_pcts = [overall["signal_pct"] for _, overall in summaries]
+        trend = trend_score(signal_pcts)
+        print(format_multi_run_summary(summaries, trend=trend))
 
     if args.flaky:
         if len(runs_test_results) < 2:
